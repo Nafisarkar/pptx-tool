@@ -15,12 +15,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            asset_name: pptx-tool-linux-amd64
-            executable: pptx-tool
-          - os: macos-latest
-            asset_name: pptx-tool-macos-amd64
-            executable: pptx-tool
           - os: windows-latest
             asset_name: pptx-tool-windows-amd64.exe
             executable: pptx-tool.exe
@@ -34,10 +28,6 @@ jobs:
 
       - name: Build release binary
         run: cargo build --release
-
-      - name: Prepare binary (Linux and macOS)
-        if: runner.os != 'Windows'
-        run: mv target/release/${{ matrix.executable }} ${{ matrix.asset_name }}
 
       - name: Prepare binary (Windows)
         if: runner.os == 'Windows'

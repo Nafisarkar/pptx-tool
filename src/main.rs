@@ -1,6 +1,5 @@
-use std::{fs, path::Path};
-
 use pptx_to_md::{ParserConfig, PresentationContainer};
+use std::{fs, path::Path};
 
 fn main() -> std::io::Result<()> {
     for entry in fs::read_dir("./")? {

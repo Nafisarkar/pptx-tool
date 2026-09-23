@@ -2,50 +2,53 @@ use pptx_to_md::{ParserConfig, PresentationContainer};
 use std::{fs, path::Path};
 
 fn main() -> std::io::Result<()> {
+    let mut converted = 0u32;
+
     for entry in fs::read_dir("./")? {
-        match entry {
-            Ok(dir_entry) => {
-                let path = dir_entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("pptx") {
-                    println!("Found PowerPoint file: {:?}", path.file_name().unwrap());
-                    convert_pptx_to_pdf(&path);
-                    convert_pptx_to_md(&path);
-                }
-            }
+        let entry = match entry {
+            Ok(e) => e,
             Err(err) => {
-                eprintln!("Failed to read directory entry: {}", err);
+                eprintln!("Failed to read directory entry: {err}");
+                continue;
             }
+        };
+
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("pptx") {
+            continue;
+        }
+
+        let name = path.file_name().unwrap().to_string_lossy();
+        println!("Converting: {name}");
+
+        if let Err(e) = convert_to_pdf(&path) {
+            eprintln!("PDF conversion failed for {name}: {e}");
+        } else {
+            converted += 1;
+        }
+
+        if let Err(e) = convert_to_md(&path) {
+            eprintln!("Markdown conversion failed for {name}: {e}");
+        } else {
+            converted += 1;
         }
     }
+
+    println!("Done. {converted} file(s) generated.");
     Ok(())
 }
 
-fn convert_pptx_to_md(input_path: &Path) {
-    let output_path = input_path.with_extension("md");
-
-    let mut presentation =
-        PresentationContainer::open(input_path, ParserConfig::default()).unwrap();
-    match presentation.convert_to_md_multi_threaded() {
-        Ok(markdown) => match std::fs::write(&output_path, &markdown) {
-            Ok(()) => println!("Markdown created successfully at: {:?}", output_path),
-            Err(e) => println!(
-                "Error while creating Markdown for {:?}: {:?}",
-                output_path, e
-            ),
-        },
-        Err(e) => {
-            println!(
-                "Error while parsing presentation for {:?}: {:?}",
-                input_path, e
-            );
-        }
-    }
+fn convert_to_pdf(input: &Path) -> Result<(), String> {
+    let output = input.with_extension("pdf");
+    minipdf::convert_to_pdf(input, &output).map_err(|e| format!("{e}"))
 }
 
-fn convert_pptx_to_pdf(input_path: &Path) {
-    let output_path = input_path.with_extension("pdf");
-    match minipdf::convert_to_pdf(input_path, &output_path) {
-        Ok(()) => println!("PDF created successfully at: {:?}", output_path),
-        Err(e) => println!("Error while creating PDF for {:?}: {:?}", input_path, e),
-    }
+fn convert_to_md(input: &Path) -> Result<(), String> {
+    let output = input.with_extension("md");
+    let mut presentation =
+        PresentationContainer::open(input, ParserConfig::default()).map_err(|e| format!("{e}"))?;
+    let markdown = presentation
+        .convert_to_md_multi_threaded()
+        .map_err(|e| format!("{e}"))?;
+    fs::write(&output, &markdown).map_err(|e| format!("{e}"))
 }

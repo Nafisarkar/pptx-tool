@@ -6,3 +6,9 @@ edition = "2024"
 [dependencies]
 minipdf = "0.7.0"
 pptx-to-md = "1.0.0"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "z"

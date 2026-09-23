@@ -31,6 +31,12 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
+      - name: Compress binary with UPX
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          files: target/release/${{ matrix.executable }}
+          args: --best --lzma
+
       - name: Prepare binary (Windows)
         if: runner.os == 'Windows'
         run: Move-Item -Path target\release\${{ matrix.executable }} -Destination ${{ matrix.asset_name }}
